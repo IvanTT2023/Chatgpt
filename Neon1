@@ -1,4 +1,4 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+(cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/build_windows.bat b/build_windows.bat
 new file mode 100644
 index 0000000000000000000000000000000000000000..e5655ea1df9df159cef3ea686bb06c46b17eae20
