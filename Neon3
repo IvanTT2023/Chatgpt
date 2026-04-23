@@ -1,0 +1,45 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/installer/NeonCounter.iss b/installer/NeonCounter.iss
+new file mode 100644
+index 0000000000000000000000000000000000000000..59162e5d892447c008b5af0724c250149ee07047
+--- /dev/null
++++ b/installer/NeonCounter.iss
+@@ -0,0 +1,35 @@
++#define MyAppName "Neon Counter"
++#define MyAppVersion "1.0.0"
++#define MyAppPublisher "Neon Counter"
++#define MyAppExeName "NeonCounter.exe"
++
++[Setup]
++AppId={{B0925DCA-8F15-446E-BC3A-E4B6DFF2A9C8}
++AppName={#MyAppName}
++AppVersion={#MyAppVersion}
++AppPublisher={#MyAppPublisher}
++DefaultDirName={autopf}\{#MyAppName}
++DefaultGroupName={#MyAppName}
++DisableProgramGroupPage=yes
++OutputDir=output
++OutputBaseFilename=NeonCounterSetup
++Compression=lzma
++SolidCompression=yes
++WizardStyle=modern
++
++[Languages]
++Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
++Name: "english"; MessagesFile: "compiler:Default.isl"
++
++[Tasks]
++Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
++
++[Files]
++Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
++
++[Icons]
++Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
++Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
++
++[Run]
++Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+ 
+EOF
+)
