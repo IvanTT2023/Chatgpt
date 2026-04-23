@@ -1,0 +1,50 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/build_windows.bat b/build_windows.bat
+new file mode 100644
+index 0000000000000000000000000000000000000000..e5655ea1df9df159cef3ea686bb06c46b17eae20
+--- /dev/null
++++ b/build_windows.bat
+@@ -0,0 +1,40 @@
++@echo off
++setlocal
++
++REM Build Windows EXE and optionally MSI-like installer (Inno Setup .exe installer)
++
++where py >nul 2>nul
++if errorlevel 1 (
++  echo [ERROR] Python launcher ^("py"^) was not found.
++  exit /b 1
++)
++
++py -m pip install --upgrade pip pyinstaller
++if errorlevel 1 (
++  echo [ERROR] Failed to install PyInstaller.
++  exit /b 1
++)
++
++py -m PyInstaller --noconfirm --clean --windowed --onefile --name NeonCounter counter_overlay.py
++if errorlevel 1 (
++  echo [ERROR] Failed to build executable.
++  exit /b 1
++)
++
++echo [OK] EXE built: dist\NeonCounter.exe
++
++where ISCC >nul 2>nul
++if errorlevel 1 (
++  echo [WARN] Inno Setup Compiler ^("ISCC"^) not found.
++  echo [WARN] Install Inno Setup and rerun this script to build installer.
++  exit /b 0
++)
++
++ISCC installer\NeonCounter.iss
++if errorlevel 1 (
++  echo [ERROR] Failed to build installer with Inno Setup.
++  exit /b 1
++)
++
++echo [OK] Installer built in installer\output\
++exit /b 0
+ 
+EOF
+)
