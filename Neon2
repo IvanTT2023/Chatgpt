@@ -1,0 +1,266 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/counter_overlay.py b/counter_overlay.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8f5f6baf9cd7935914e414f9f5690227d02b6578
+--- /dev/null
++++ b/counter_overlay.py
+@@ -0,0 +1,256 @@
++#!/usr/bin/env python3
++"""Неоновый настольный счётчик поверх всех окон."""
++
++from __future__ import annotations
++
++import tkinter as tk
++from tkinter import ttk, colorchooser
++
++
++class CounterApp:
++    def __init__(self, root: tk.Tk) -> None:
++        self.root = root
++        self.root.title("Neon Counter")
++        self.root.geometry("380x560+40+40")
++        self.root.configure(bg="#05060a")
++        self.root.attributes("-topmost", True)
++
++        self.target_value = tk.DoubleVar(value=500_000)
++        self.current_value = tk.DoubleVar(value=0)
++        self.fg_color = tk.StringVar(value="#39FF14")
++        self.bg_color = tk.StringVar(value="#05060a")
++
++        self._build_ui()
++        self.update_meter()
++
++    def _build_ui(self) -> None:
++        style = ttk.Style(self.root)
++        style.theme_use("clam")
++        style.configure(
++            "Neon.Horizontal.TProgressbar",
++            troughcolor="#151827",
++            bordercolor="#151827",
++            background=self.fg_color.get(),
++            lightcolor=self.fg_color.get(),
++            darkcolor=self.fg_color.get(),
++        )
++
++        container = tk.Frame(self.root, bg=self.bg_color.get(), padx=18, pady=18)
++        container.pack(fill="both", expand=True)
++
++        title = tk.Label(
++            container,
++            text="НЕОНОВЫЙ СЧЁТЧИК",
++            fg=self.fg_color.get(),
++            bg=self.bg_color.get(),
++            font=("Segoe UI", 16, "bold"),
++        )
++        title.pack(pady=(0, 16))
++
++        self.target_label = tk.Label(
++            container,
++            text="Цель: 500,000",
++            fg=self.fg_color.get(),
++            bg=self.bg_color.get(),
++            font=("Consolas", 15, "bold"),
++        )
++        self.target_label.pack(anchor="w")
++
++        self.current_label = tk.Label(
++            container,
++            text="Текущее: 0",
++            fg="#d2f8cf",
++            bg=self.bg_color.get(),
++            font=("Consolas", 13),
++        )
++        self.current_label.pack(anchor="w", pady=(6, 12))
++
++        self.progress = ttk.Progressbar(
++            container,
++            style="Neon.Horizontal.TProgressbar",
++            mode="determinate",
++            maximum=100,
++            value=0,
++            length=320,
++        )
++        self.progress.pack(fill="x", pady=(0, 10))
++
++        self.percent_label = tk.Label(
++            container,
++            text="Прогресс: 0.0%",
++            fg="#9dd9ff",
++            bg=self.bg_color.get(),
++            font=("Segoe UI", 11),
++        )
++        self.percent_label.pack(anchor="w", pady=(0, 14))
++
++        hint = tk.Label(
++            container,
++            text="Верх — цель, низ — ввод дневного значения (+/-)",
++            fg="#98a0b3",
++            bg=self.bg_color.get(),
++            font=("Segoe UI", 10),
++            wraplength=320,
++            justify="left",
++        )
++        hint.pack(anchor="w", pady=(0, 10))
++
++        entry_wrap = tk.Frame(container, bg=self.bg_color.get())
++        entry_wrap.pack(fill="x", pady=(0, 8))
++
++        tk.Label(
++            entry_wrap,
++            text="Цель:",
++            fg="#c1ffbd",
++            bg=self.bg_color.get(),
++            font=("Segoe UI", 10, "bold"),
++        ).grid(row=0, column=0, sticky="w", padx=(0, 8), pady=3)
++
++        self.target_entry = tk.Entry(
++            entry_wrap,
++            textvariable=self.target_value,
++            bg="#101624",
++            fg="#f1fff0",
++            insertbackground="#f1fff0",
++            relief="flat",
++            font=("Consolas", 11),
++        )
++        self.target_entry.grid(row=0, column=1, sticky="ew", pady=3)
++
++        tk.Label(
++            entry_wrap,
++            text="Сегодня (+/-):",
++            fg="#c1ffbd",
++            bg=self.bg_color.get(),
++            font=("Segoe UI", 10, "bold"),
++        ).grid(row=1, column=0, sticky="w", padx=(0, 8), pady=3)
++
++        self.delta_entry = tk.Entry(
++            entry_wrap,
++            bg="#101624",
++            fg="#f1fff0",
++            insertbackground="#f1fff0",
++            relief="flat",
++            font=("Consolas", 11),
++        )
++        self.delta_entry.insert(0, "0")
++        self.delta_entry.grid(row=1, column=1, sticky="ew", pady=3)
++
++        entry_wrap.grid_columnconfigure(1, weight=1)
++
++        buttons = tk.Frame(container, bg=self.bg_color.get())
++        buttons.pack(fill="x", pady=(6, 8))
++
++        apply_btn = tk.Button(
++            buttons,
++            text="Применить",
++            command=self.apply_values,
++            bg="#1f2840",
++            fg="#ddf8ff",
++            activebackground="#32456b",
++            relief="flat",
++            padx=10,
++            pady=7,
++        )
++        apply_btn.pack(side="left")
++
++        color_btn = tk.Button(
++            buttons,
++            text="Цвет неона",
++            command=self.pick_neon_color,
++            bg="#1f2840",
++            fg="#ddf8ff",
++            activebackground="#32456b",
++            relief="flat",
++            padx=10,
++            pady=7,
++        )
++        color_btn.pack(side="left", padx=8)
++
++        close_btn = tk.Button(
++            buttons,
++            text="Выход",
++            command=self.root.destroy,
++            bg="#3a1630",
++            fg="#ffd9ee",
++            activebackground="#562046",
++            relief="flat",
++            padx=10,
++            pady=7,
++        )
++        close_btn.pack(side="right")
++
++    def apply_values(self) -> None:
++        try:
++            target = float(self.target_entry.get().replace(",", "").strip())
++            delta = float(self.delta_entry.get().replace(",", "").strip())
++        except ValueError:
++            self.delta_entry.delete(0, tk.END)
++            self.delta_entry.insert(0, "Ошибка ввода")
++            return
++
++        if target <= 0:
++            self.delta_entry.delete(0, tk.END)
++            self.delta_entry.insert(0, "Цель > 0")
++            return
++
++        self.target_value.set(target)
++        self.current_value.set(self.current_value.get() + delta)
++        self.update_meter()
++        self.delta_entry.delete(0, tk.END)
++        self.delta_entry.insert(0, "0")
++
++    def pick_neon_color(self) -> None:
++        color = colorchooser.askcolor(title="Выберите цвет неона")[1]
++        if not color:
++            return
++        self.fg_color.set(color)
++        self._repaint()
++
++    def _repaint(self) -> None:
++        bg = self.bg_color.get()
++        fg = self.fg_color.get()
++        self.root.configure(bg=bg)
++
++        style = ttk.Style(self.root)
++        style.configure(
++            "Neon.Horizontal.TProgressbar",
++            background=fg,
++            lightcolor=fg,
++            darkcolor=fg,
++        )
++
++        for widget in self.root.winfo_children():
++            self._repaint_widget(widget, bg, fg)
++
++    def _repaint_widget(self, widget: tk.Widget, bg: str, fg: str) -> None:
++        if isinstance(widget, (tk.Frame, tk.Label)):
++            widget.configure(bg=bg)
++            if isinstance(widget, tk.Label):
++                text = widget.cget("text")
++                if text.startswith(("НЕОНОВЫЙ", "Цель:")):
++                    widget.configure(fg=fg)
++        for child in widget.winfo_children():
++            self._repaint_widget(child, bg, fg)
++
++    def update_meter(self) -> None:
++        target = self.target_value.get()
++        current = self.current_value.get()
++
++        percent = (current / target) * 100 if target else 0
++        percent_for_bar = max(0, min(percent, 100))
++
++        self.progress.configure(value=percent_for_bar)
++        self.target_label.configure(text=f"Цель: {target:,.0f}".replace(",", " "))
++        self.current_label.configure(text=f"Текущее: {current:,.0f}".replace(",", " "))
++        self.percent_label.configure(text=f"Прогресс: {percent:.1f}%")
++
++
++def main() -> None:
++    root = tk.Tk()
++    CounterApp(root)
++    root.mainloop()
++
++
++if __name__ == "__main__":
++    main()
+ 
+EOF
+)
